@@ -24,6 +24,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import static org.mockito.ArgumentMatchers.eq;
+
 @WebMvcTest(TransactionController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class TransactionControllerTest {
@@ -65,11 +70,12 @@ class TransactionControllerTest {
     @WithMockUser
     void shouldGetTransactions() throws Exception {
         TransactionDto response = TransactionDto.builder().id(1L).amount(new BigDecimal("10")).build();
+        Page<TransactionDto> pageResponse = new PageImpl<>(List.of(response));
 
-        when(transactionService.getTransactionsByAccountId(1L)).thenReturn(List.of(response));
+        when(transactionService.getTransactionsByAccountId(eq(1L), any(Pageable.class))).thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/v1/transactions/account/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L));
+                .andExpect(jsonPath("$.content[0].id").value(1L));
     }
 }

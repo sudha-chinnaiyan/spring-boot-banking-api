@@ -18,10 +18,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -181,5 +187,70 @@ class TransactionServiceTest {
         when(accountRepository.save(sourceAccount)).thenThrow(new ObjectOptimisticLockingFailureException("Account", 1L));
 
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> transactionService.transferFunds(request));
+    }
+
+    @Test
+    void shouldGetTransactionsPaginated_FirstPage() {
+        Transaction txn1 = Transaction.builder()
+                .id(100L)
+                .transactionReference("TXN-1")
+                .amount(new BigDecimal("100"))
+                .build();
+        Transaction txn2 = Transaction.builder()
+                .id(101L)
+                .transactionReference("TXN-2")
+                .amount(new BigDecimal("200"))
+                .build();
+
+        Pageable pageable = PageRequest.of(0, 2, Sort.by("createdAt").descending());
+        Page<Transaction> pageResponse = new PageImpl<>(List.of(txn1, txn2), pageable, 5);
+
+        when(transactionRepository.findBySourceAccountIdOrDestinationAccountId(1L, 1L, pageable)).thenReturn(pageResponse);
+
+        Page<TransactionDto> result = transactionService.getTransactionsByAccountId(1L, pageable);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(5);
+        assertThat(result.getTotalPages()).isEqualTo(3);
+        assertThat(result.getContent().get(0).getId()).isEqualTo(100L);
+    }
+
+    @Test
+    void shouldGetTransactionsPaginated_EmptyHistory() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+
+        when(transactionRepository.findBySourceAccountIdOrDestinationAccountId(1L, 1L, pageable)).thenReturn(emptyPage);
+
+        Page<TransactionDto> result = transactionService.getTransactionsByAccountId(1L, pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+    }
+
+    @Test
+    void shouldGetTransactionsPaginated_CappedPageSize() {
+        Pageable requestedPageable = PageRequest.of(0, 150); // size > 100
+        Pageable expectedPageable = PageRequest.of(0, 100);
+        
+        Page<Transaction> expectedPage = new PageImpl<>(Collections.emptyList(), expectedPageable, 0);
+        when(transactionRepository.findBySourceAccountIdOrDestinationAccountId(1L, 1L, expectedPageable)).thenReturn(expectedPage);
+
+        transactionService.getTransactionsByAccountId(1L, requestedPageable);
+
+        verify(transactionRepository).findBySourceAccountIdOrDestinationAccountId(1L, 1L, expectedPageable);
+    }
+
+    @Test
+    void shouldGetTransactionsPaginated_PageBeyondData() {
+        Pageable pageable = PageRequest.of(5, 10);
+        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 2);
+
+        when(transactionRepository.findBySourceAccountIdOrDestinationAccountId(1L, 1L, pageable)).thenReturn(emptyPage);
+
+        Page<TransactionDto> result = transactionService.getTransactionsByAccountId(1L, pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(2);
     }
 }

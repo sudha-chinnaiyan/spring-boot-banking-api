@@ -7,10 +7,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
@@ -27,8 +29,10 @@ public class TransactionController {
     }
 
     @GetMapping("/account/{accountId}")
-    @Operation(summary = "Get all transactions for an account")
-    public ResponseEntity<List<TransactionDto>> getTransactionsByAccountId(@PathVariable Long accountId) {
-        return ResponseEntity.ok(transactionService.getTransactionsByAccountId(accountId));
+    @Operation(summary = "Get all transactions for an account with pagination")
+    public ResponseEntity<Page<TransactionDto>> getTransactionsByAccountId(
+            @PathVariable Long accountId,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(transactionService.getTransactionsByAccountId(accountId, pageable));
     }
 }

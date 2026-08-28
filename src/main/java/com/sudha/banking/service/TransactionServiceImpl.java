@@ -16,9 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -74,10 +75,14 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TransactionDto> getTransactionsByAccountId(Long accountId) {
-        List<Transaction> transactions = transactionRepository
-                .findBySourceAccountIdOrDestinationAccountId(accountId, accountId);
-        return transactions.stream().map(this::mapToDto).collect(Collectors.toList());
+    public Page<TransactionDto> getTransactionsByAccountId(Long accountId, Pageable pageable) {
+        // Protection against unreasonable page sizes by capping size at 100
+        int cappedSize = Math.min(pageable.getPageSize(), 100);
+        Pageable cappedPageable = PageRequest.of(pageable.getPageNumber(), cappedSize, pageable.getSort());
+
+        Page<Transaction> transactions = transactionRepository
+                .findBySourceAccountIdOrDestinationAccountId(accountId, accountId, cappedPageable);
+        return transactions.map(this::mapToDto);
     }
 
     private TransactionDto mapToDto(Transaction transaction) {
