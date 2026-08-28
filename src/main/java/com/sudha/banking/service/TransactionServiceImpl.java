@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import java.util.UUID;
 
 @Service
@@ -30,6 +33,15 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional
+    @Retryable(
+            retryFor = { ObjectOptimisticLockingFailureException.class },
+            maxAttempts = 3,
+            backoff = @Backoff(
+                    delay = 100,
+                    maxDelay = 500,
+                    multiplier = 2.0
+            )
+    )
     public TransactionDto transferFunds(TransferRequestDto request) {
         Account sourceAccount = accountRepository.findById(request.getSourceAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Source account not found"));
