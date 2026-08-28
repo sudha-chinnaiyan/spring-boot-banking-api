@@ -73,12 +73,12 @@
 			<optional>true</optional>
 		</dependency>
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+    			<groupId>org.springframework.boot</groupId>
+   			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-mysql</artifactId>
+    		<groupId>org.flywaydb</groupId>
+   			 <artifactId>flyway-mysql</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
@@ -117,6 +117,18 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<requiresUnpack>
+						<dependency>
+							<groupId>org.flywaydb</groupId>
+							<artifactId>flyway-core</artifactId>
+						</dependency>
+						<dependency>
+							<groupId>org.flywaydb</groupId>
+							<artifactId>flyway-mysql</artifactId>
+						</dependency>
+					</requiresUnpack>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
