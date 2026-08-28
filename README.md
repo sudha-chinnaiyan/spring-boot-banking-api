@@ -101,17 +101,40 @@ Interactive Swagger documentation is available once the application runs at:
 
 ---
 
-## 📷 Screenshots / API Demo
+## 📷 API Visual Walkthrough (Screenshots)
 
-Below is the visual overview of the API schemas and execution flow using the actual Swagger UI documentation:
+This section demonstrates the core capabilities of the API by showing Swagger UI request and response payloads across successful flows and negative validation/error cases:
 
-### Swagger UI API Schemas
-![Swagger UI Overview](docs/screenshots/swagger-overview.png)
+### 1. Swagger API Overview
+*   Visual overview of the available REST endpoints grouped by Customer, Account, and Transaction controllers.
+![Swagger API Overview](docs/screenshots/swagger-overview.png)
 
-### Swagger UI API Execution
-![Swagger UI Endpoint Execution](docs/screenshots/swagger-overview1.png)
+### 2. Create Account (Success Flow)
+*   **POST** `/api/v1/accounts` creates a new bank account with an initial deposit of ₹1000.
+![Create Account Success](docs/screenshots/create-account-success.jpg)
+
+### 3. Retrieve Account Details (Success Flow)
+*   **GET** `/api/v1/accounts/2` returns the current active account balance and status details.
+![Retrieve Account Success](docs/screenshots/get-account-success.jpg)
+
+### 4. Atomic Fund Transfer (Success Flow)
+*   **POST** `/api/v1/transactions/transfer` processes a successful transfer of ₹500 from Account 2 to Account 3.
+![Fund Transfer Success](docs/screenshots/fund-transfer-success.jpg)
+
+### 5. Insufficient Balance Error (Negative Flow)
+*   **POST** `/api/v1/transactions/transfer` fails with HTTP 400 Bad Request when attempting to transfer an amount larger than the source account balance.
+![Insufficient Balance Error](docs/screenshots/insufficient-balance-error.jpg)
+
+### 6. Blocked / Inactive Account Error (Negative Flow)
+*   **POST** `/api/v1/transactions/transfer` fails with HTTP 403 Forbidden when executing transfers involving blocked or inactive accounts.
+![Blocked Account Error](docs/screenshots/blocked-account-error.jpg)
+
+### 7. Request Field Validation Error (Negative Flow)
+*   HTTP 400 Bad Request returned with a structured RFC 7807 `ProblemDetail` mapping the invalid inputs (e.g. negative balance, missing fields) in the `invalidParams` block.
+![Validation Error](docs/screenshots/validation-error.jpg)
 
 ---
+
 
 ## 💡 Key Engineering Decisions
 
