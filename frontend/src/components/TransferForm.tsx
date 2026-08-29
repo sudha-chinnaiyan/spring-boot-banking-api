@@ -6,7 +6,7 @@ import { validateTransfer } from '../utils/validation';
 import { formatCurrency } from '../utils/currency';
 import { TransferSuccess } from './TransferSuccess';
 import { TransferError } from './TransferError';
-import { ArrowRightLeft, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRightLeft, ArrowRight, Loader2, AlertCircle, Eye } from 'lucide-react';
 
 interface TransferFormProps {
   accounts: Account[];
@@ -18,6 +18,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
   const [destinationId, setDestinationId] = useState<string>('');
   const [amountStr, setAmountStr] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
   
   const [validationError, setValidationError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<any | null>(null);
@@ -26,7 +27,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
   const sourceAccount = accounts.find(a => a.id === Number(sourceId)) || null;
   const destinationAccount = accounts.find(a => a.id === Number(destinationId)) || null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInitiate = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
     setApiError(null);
@@ -37,7 +38,12 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
       return;
     }
 
+    setIsConfirming(true);
+  };
+
+  const handleConfirm = async () => {
     setIsSubmitting(true);
+    setApiError(null);
     try {
       const response = await transactionService.transferFunds({
         sourceAccountId: Number(sourceId),
@@ -45,9 +51,11 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
         amount: Number(amountStr)
       });
       setSuccessTransaction(response);
+      setIsConfirming(false);
       onTransferSuccess();
     } catch (err: any) {
       setApiError(err);
+      setIsConfirming(false); // return to edit form if transaction fails
     } finally {
       setIsSubmitting(false);
     }
@@ -60,6 +68,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
     setValidationError(null);
     setApiError(null);
     setSuccessTransaction(null);
+    setIsConfirming(false);
   };
 
   if (successTransaction && sourceAccount && destinationAccount) {
@@ -71,6 +80,75 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
           destinationNumber={destinationAccount.accountNumber}
           onClose={handleReset}
         />
+      </div>
+    );
+  }
+
+  if (isConfirming && sourceAccount && destinationAccount) {
+    return (
+      <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-6 shadow-xl backdrop-blur-sm space-y-6 font-sans">
+        <div className="flex items-start space-x-3.5 pb-4 border-b border-slate-950/60">
+          <div className="bg-indigo-600/10 p-2.5 rounded-xl text-indigo-400 border border-indigo-500/15">
+            <Eye className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Confirm Transfer</h3>
+            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+              Review transaction details carefully before authorization.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-slate-950/60 border border-slate-900 rounded-xl p-5 space-y-4 text-sm">
+          <div className="flex justify-between py-2 border-b border-slate-900/40">
+            <span className="text-slate-500 text-xs">Source Account</span>
+            <div className="text-right">
+              <p className="font-semibold text-slate-200">{sourceAccount.accountType}</p>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{sourceAccount.accountNumber}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-between py-2 border-b border-slate-900/40">
+            <span className="text-slate-500 text-xs">Destination Account</span>
+            <div className="text-right">
+              <p className="font-semibold text-slate-200">{destinationAccount.accountType}</p>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{destinationAccount.accountNumber}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-between py-2">
+            <span className="text-slate-500 text-xs">Amount to Send</span>
+            <span className="font-bold text-white font-mono text-base">
+              {formatCurrency(Number(amountStr))}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <button
+            type="button"
+            onClick={() => setIsConfirming(false)}
+            disabled={isSubmitting}
+            className="w-1/2 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-slate-300 font-semibold py-3 px-4 rounded-xl text-sm transition-colors cursor-pointer disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            className="w-1/2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center space-x-2 text-sm cursor-pointer disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Sending...</span>
+              </>
+            ) : (
+              <span>Confirm & Send</span>
+            )}
+          </button>
+        </div>
       </div>
     );
   }
@@ -105,7 +183,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleInitiate} className="space-y-5">
         <div>
           <label htmlFor="source-account-select" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
             From Account (Source)

@@ -5,6 +5,7 @@ import { AccountCard } from '../components/AccountCard';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
 import { TransferForm } from '../components/TransferForm';
+import { TransactionHistory } from '../components/TransactionHistory';
 import { customerService } from '../services/customerService';
 import { accountService } from '../services/accountService';
 import type { Customer } from '../types/customer';
@@ -18,6 +19,12 @@ export const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState<number>(0);
+
+  const handleTransferSuccess = () => {
+    fetchData();
+    setHistoryRefreshKey(prev => prev + 1);
+  };
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -175,12 +182,17 @@ export const DashboardPage: React.FC = () => {
                 ))}
               </div>
             )}
+            {accounts.length > 0 && (
+              <div className="pt-4">
+                <TransactionHistory accounts={accounts} refreshTrigger={historyRefreshKey} />
+              </div>
+            )}
           </section>
 
           {/* Transfer Form Section (1/3 width on desktop) */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold text-white tracking-tight font-sans">Execution Desk</h2>
-            <TransferForm accounts={accounts} onTransferSuccess={fetchData} />
+            <TransferForm accounts={accounts} onTransferSuccess={handleTransferSuccess} />
           </section>
         </div>
       </main>

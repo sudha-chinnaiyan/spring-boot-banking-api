@@ -209,7 +209,79 @@ Every commit pushed or pull request opened against the `main` branch triggers th
 
 ---
 
+## 🌐 Full-Stack Banking Application
+
+A professional React + TypeScript frontend portal is integrated to expose accounts, metrics, and transfer utilities directly.
+
+### Architecture Overview
+
+*   **Frontend**: React (SPA), TypeScript, Vite, Tailwind CSS, Axios (with request/response interceptors for HTTP Basic session management), React Router.
+*   **Backend**: Spring Boot, Spring Security (HTTP Basic), Spring Data JPA (Hibernate), MySQL, Flyway migrations, Spring Retry (optimistic locking concurrency handlers).
+
+### Full-Stack Request Flow
+
+```
+React UI (State & Forms)
+       │
+       ▼ (Dispatches Axios HTTP Request)
+Axios HTTP client (Injects 'Authorization: Basic <credentials>' from sessionStorage)
+       │
+       ▼ (HTTP Network Call)
+Spring Security Filters (Verifies basic credentials, rejects 401 early if invalid)
+       │
+       ▼ (Routing & Processing)
+Spring RestControllers (Maps endpoint to controller logic)
+       │
+       ▼ (DTO validations)
+Spring Services (Runs transactional business validations)
+       │
+       ▼ (Database commands)
+Spring Data JPA (Fires SQL select/update)
+       │
+       ▼
+PostgreSQL / MySQL Database
+```
+
+### Fund Transfer Transaction Flow
+
+```
+React Transfer Form (UX validation, inputs check)
+       │
+       ▼ (Post payload)
+POST /api/v1/transactions/transfer
+       │
+       ▼
+Spring Security Filters (Authorizes caller context)
+       │
+       ▼
+TransactionService.transferFunds()
+       │
+       ▼ (Wraps in database transactional scope)
+@Transactional (Acquires ACID isolation boundary)
+       │
+       ▼ (Locking check on source/destination Account objects)
+Optimistic Locking Check (@Version verification)
+       ├─► [No version conflict] ──► Commits database update ──► Returns DTO
+       └─► [Version conflict] ──► ObjectOptimisticLockingFailureException
+                                            │
+                                            ▼
+                                  Spring Retry Aspect
+                                            │
+                                            ▼ (Exponential backoff retry up to 3 times)
+                                  Re-runs transaction
+                                            │
+                                            ▼
+                                  Committed / Fails (HTTP 409)
+                                            │
+                                            ▼ (API Response payload)
+React UI (Parses transaction success or maps ProblemDetail error and triggers balance/audit log refreshes)
+```
+
+---
+
 ## 📈 Future Architecture Enhancements
-1.  **Stateless JWT Authentication**: Secure endpoints using stateless token-based authorization instead of permissive request rules.
-2.  **Concurrency Retries**: Use Spring Retry (`@Retryable`) to catch `409 Conflict` optimistic locking errors and automatically retry the transaction.
+
+1.  **Stateless JWT/OAuth2 Authentication**: Secure endpoints using stateless token-based authorization.
+2.  **True Idempotency Keys**: Track transaction submissions using client-generated idempotency keys to prevent double-spending in retry failure scenarios.
 3.  **Distributed Caching**: Implement Redis caching for read-heavy query endpoints such as `/api/v1/transactions/account/{accountId}`.
+
