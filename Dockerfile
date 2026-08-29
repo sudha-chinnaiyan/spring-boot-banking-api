@@ -22,7 +22,14 @@ RUN ./mvnw clean package -DskipTests
 # Stage 2: Create the production image
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
+
+# Add a non-root system user for security hardening
+RUN addgroup -S spring && adduser -S spring -G spring
+
+# Run as non-root user
+USER spring:spring
+
+COPY --from=builder --chown=spring:spring /app/target/*.jar app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

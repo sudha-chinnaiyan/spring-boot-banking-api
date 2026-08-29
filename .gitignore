@@ -36,3 +36,12 @@ build/
 *.zip
 jar*/
 scratch_jar/
+
+### Environment Configs ###
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+dist/
+node_modules/

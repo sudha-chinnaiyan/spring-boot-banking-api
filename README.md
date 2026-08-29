@@ -30,7 +30,7 @@ This API solves these challenges using declarative transactions (`@Transactional
     *   *Spring Data JPA* (Hibernate ORM)
     *   *Spring Security* (Configured to expose REST endpoints while disabling CSRF)
     *   *Spring Validation* (`jakarta.validation-api`)
-*   **Database Management**: MySQL 8.0 (Production) | H2 Database (Unit/Integration Testing)
+*   **Database Management**: PostgreSQL 15 (Production) | H2 Database (Unit/Integration Testing)
 *   **Schema Migration**: Flyway 12.4.0
 *   **Containerization**: Docker Compose & Multi-stage Dockerfile
 *   **API Specification**: OpenAPI 3.0 / Swagger UI (using Springdoc OpenAPi 2.5.0)
@@ -159,30 +159,108 @@ We leverage standard HTTP `ProblemDetail` structures to return descriptive error
 
 ---
 
-## 🐳 Docker Setup
+## 🐳 Docker Architecture & Setup
 
-### Prerequisites
-*   [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine installed on your host.
+### Architecture Overview
 
-The production setup uses a **Multi-Stage Dockerfile** to build the artifact using a lightweight Maven builder container (`eclipse-temurin:17-jdk`) and running the application inside a slim runtime container (`eclipse-temurin:17-jre-alpine`).
-
-To start the database and API services:
-
-```bash
-# Start MySQL 8.0 and banking-api services in detached mode
-docker compose up -d
-
-# Check startup status
-docker compose ps
-
-# View API logs
-docker logs banking_api -f
+```
+                      +-------------------+
+                      |      Browser      |
+                      +-------------------+
+                                |
+                   HTTP / Port 3000 / Web Assets
+                                v
+               +---------------------------------+
+               |        banking_frontend         |
+               |         (Nginx serve)           |
+               +---------------------------------+
+                 /                               \
+    / (Static React portal)             /api/* (Reverse Proxy)
+               /                                   \
+              v                                     v
++---------------------------+             +---------------------------+
+|          Browser          |             |        banking_api        |
+|    (Executes JS React)    |             |   (Spring Boot Container) |
++---------------------------+             +---------------------------+
+              |                                         |
+     REST calls on Host                                 | JDBC (Port 5432)
+              |                                         v
+              +--------------------------------> +---------------------------+
+                                                 |     banking_postgres      |
+                                                 |   (PostgreSQL 15 DB)      |
+                                                 +---------------------------+
+                                                                |
+                                                      Persistent Named Volume
+                                                                v
+                                                     [postgres-data volume]
 ```
 
-To tear down services:
+Our local production environment is fully orchestrated using **Docker Compose** with a segmented multi-container layout:
+1. **Database Container (`banking_postgres`)**: Runs PostgreSQL 15-alpine on a private network bridge. Persists state to a named Docker volume (`postgres-data`). Includes a health check mapping database readiness via `pg_isready`.
+2. **Backend API Container (`banking_api`)**: Standard multi-stage build running our Spring Boot application on lightweight `eclipse-temurin:17-jre-alpine` under a non-root system user. Startup is delayed until the database health check reports `healthy`.
+3. **Frontend Container (`banking_frontend`)**: Multi-stage build running Node to bundle React/Vite assets, and Nginx to serve static files. It also maps `/api/` requests internally to the backend API over the Docker network, solving CORS requirements without leaking internal addresses.
+
+### Prerequisites
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine with Docker Compose installed.
+
+### Environment Configuration
+The application parameters are configured via environment variables. Follow these steps before boot:
+1. Duplicate the `.env.example` file and rename it to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Review variables inside `.env`. Do NOT commit this file to Git.
+
+### Running with Docker Compose
+To build and start all containers:
+```bash
+docker compose up -d --build
+```
+This command automatically:
+* Starts the PostgreSQL container.
+* Waits for PostgreSQL to accept socket connections (healthcheck passes).
+* Starts the Spring Boot backend container and executes database migrations.
+* Starts Nginx serving the React SPA.
+
+### Application URLs
+Once running, the stack is accessible at:
+* **Frontend Web Application**: [http://localhost:3000](http://localhost:3000)
+* **Backend API Swagger Documentation**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+* **Direct Backend Health Check**: [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health)
+
+### Stopping the Application
+To stop all services:
 ```bash
 docker compose down
 ```
+To stop services and completely wipe out the persistent database volume:
+```bash
+docker compose down -v
+```
+
+### Useful Docker Commands
+* **Check Service Status**:
+  ```bash
+  docker compose ps
+  ```
+* **View Streamed Logs**:
+  ```bash
+  docker compose logs -f
+  ```
+* **Inspect Backend Logs**:
+  ```bash
+  docker compose logs -f banking-api
+  ```
+* **Restart Backend Container**:
+  ```bash
+  docker compose restart banking-api
+  ```
+
+### Troubleshooting
+* **Port conflicts (e.g. 8080 or 3000 already in use)**: Ensure no local Spring Boot apps or web services are running on ports 8080 or 3000. Run `netstat -ano | findstr 8080` (Windows) to identify processes.
+* **Database connection failures**: Ensure the `.env` values for database username, password, and database match between compose services and that `DB_HOST` matches `postgres`.
+* **Stale image versions**: If you modify the codebase, rebuild containers using `docker compose build --no-cache`.
+* **Flyway Migration Conflicts**: If Flyway migration hashes mismatch, clean the target build and wipe the Docker volume using `docker compose down -v`.
 
 ---
 
@@ -216,7 +294,7 @@ A professional React + TypeScript frontend portal is integrated to expose accoun
 ### Architecture Overview
 
 *   **Frontend**: React (SPA), TypeScript, Vite, Tailwind CSS, Axios (with request/response interceptors for HTTP Basic session management), React Router.
-*   **Backend**: Spring Boot, Spring Security (HTTP Basic), Spring Data JPA (Hibernate), MySQL, Flyway migrations, Spring Retry (optimistic locking concurrency handlers).
+*   **Backend**: Spring Boot, Spring Security (HTTP Basic), Spring Data JPA (Hibernate), PostgreSQL, Flyway migrations, Spring Retry (optimistic locking concurrency handlers).
 
 ### Full-Stack Request Flow
 

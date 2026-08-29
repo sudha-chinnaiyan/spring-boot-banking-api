@@ -1,37 +1,59 @@
-
 services:
-  mysql-db:
-    image: mysql:8.0
-    container_name: banking_mysql
+  postgres:
+    image: postgres:15-alpine
+    container_name: banking_postgres
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: banking_db
-      MYSQL_USER: dbuser
-      MYSQL_PASSWORD: dbpass
-    ports:
-      - "3306:3306"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}'"]
+      interval: 5s
       timeout: 5s
-      retries: 3
+      retries: 5
+    networks:
+      - banking-network
+    restart: unless-stopped
 
   banking-api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: banking_api
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - DB_HOST=mysql-db
-      - DB_USERNAME=dbuser
-      - DB_PASSWORD=dbpass
-      - DB_NAME=banking_db
+      - SPRING_PROFILES_ACTIVE=docker
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USERNAME=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
     depends_on:
-      mysql-db:
+      postgres:
         condition: service_healthy
+    networks:
+      - banking-network
+    restart: unless-stopped
+
+  banking-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: banking_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - banking-api
+    networks:
+      - banking-network
+    restart: unless-stopped
 
 volumes:
-  mysql-data:
+  postgres-data:
+
+networks:
+  banking-network:
+    driver: bridge
