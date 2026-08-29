@@ -4,12 +4,13 @@ import { StatCard } from '../components/StatCard';
 import { AccountCard } from '../components/AccountCard';
 import { LoadingState } from '../components/LoadingState';
 import { ErrorState } from '../components/ErrorState';
+import { TransferForm } from '../components/TransferForm';
 import { customerService } from '../services/customerService';
 import { accountService } from '../services/accountService';
 import type { Customer } from '../types/customer';
 import type { Account } from '../types/account';
 import { formatCurrency } from '../utils/currency';
-import { Wallet, Briefcase, CheckCircle2, AlertTriangle, User, Mail, Phone, Calendar, ArrowRightLeft } from 'lucide-react';
+import { Wallet, Briefcase, CheckCircle2, AlertTriangle, User, Mail, Phone, Calendar } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -176,27 +177,10 @@ export const DashboardPage: React.FC = () => {
             )}
           </section>
 
-          {/* Action placeholder Section (1/3 width on desktop) */}
+          {/* Transfer Form Section (1/3 width on desktop) */}
           <section className="space-y-6">
-            <h2 className="text-xl font-bold text-white tracking-tight">Quick Actions</h2>
-            
-            <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-6 shadow-xl backdrop-blur-sm space-y-4">
-              <div className="flex items-start space-x-3.5 pb-4 border-b border-slate-950/60">
-                <div className="bg-indigo-600/10 p-2.5 rounded-xl text-indigo-400 border border-indigo-500/15">
-                  <ArrowRightLeft className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">Transfers & History</h3>
-                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                    Interactive money transfers and paginated transaction reports are scheduled for the next deployment phase.
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-[11px] text-slate-500 leading-relaxed pt-2">
-                <span className="font-semibold text-slate-400">Features pending Phase 4.4:</span> Real-time account to account balance transfers with optimistic locking retry validation.
-              </div>
-            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight font-sans">Execution Desk</h2>
+            <TransferForm accounts={accounts} onTransferSuccess={fetchData} />
           </section>
         </div>
       </main>
