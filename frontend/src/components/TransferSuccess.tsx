@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Transaction } from '../types/transaction';
 import { formatCurrency } from '../utils/currency';
+import { formatDateTime } from '../utils/date';
 import { CheckCircle2, ArrowRight, Calendar, Hash, ShieldCheck } from 'lucide-react';
 
 interface TransferSuccessProps {
@@ -64,7 +65,7 @@ export const TransferSuccess: React.FC<TransferSuccessProps> = ({
               <Calendar className="h-3.5 w-3.5" /> Date & Time
             </span>
             <span className="font-semibold text-slate-300 font-mono">
-              {new Date(transaction.createdAt).toLocaleString()}
+              {formatDateTime(transaction.createdAt)}
             </span>
           </div>
 

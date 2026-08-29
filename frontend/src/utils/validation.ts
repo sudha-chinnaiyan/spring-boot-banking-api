@@ -26,6 +26,11 @@ export const validateTransfer = (
     return { isValid: false, message: 'Please enter a transfer amount.' };
   }
 
+  // Prevent excessive length to safeguard input overflows
+  if (amountStr.length > 12) {
+    return { isValid: false, message: 'Transfer amount input length exceeds system limits.' };
+  }
+
   const amount = Number(amountStr);
   if (isNaN(amount)) {
     return { isValid: false, message: 'Transfer amount must be a valid number.' };
@@ -40,12 +45,14 @@ export const validateTransfer = (
     return { isValid: false, message: 'Transfer amount must be a valid monetary value (maximum 2 decimal places).' };
   }
 
+  // Prevent transfers from non-active source accounts
   if (sourceAccount.status !== 'ACTIVE') {
-    return { isValid: false, message: 'The source account is not active and cannot perform transfers.' };
+    return { isValid: false, message: `The source account is currently ${sourceAccount.status} and cannot initiate transfers.` };
   }
 
+  // Prevent transfers to non-active destination accounts
   if (destinationAccount.status !== 'ACTIVE') {
-    return { isValid: false, message: 'The destination account is not active and cannot receive transfers.' };
+    return { isValid: false, message: `The destination account is currently ${destinationAccount.status} and cannot receive transfers.` };
   }
 
   if (amount > sourceAccount.balance) {

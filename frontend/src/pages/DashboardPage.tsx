@@ -22,16 +22,17 @@ export const DashboardPage: React.FC = () => {
   const [historyRefreshKey, setHistoryRefreshKey] = useState<number>(0);
 
   const handleTransferSuccess = () => {
-    fetchData();
+    fetchData(true);
     setHistoryRefreshKey(prev => prev + 1);
   };
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = async (isBackground = false) => {
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     setError(null);
     setIsNotFound(false);
     try {
-      // Load customer ID 1 as standard demo profile
       const custData = await customerService.getCustomer(1);
       setCustomer(custData);
 
@@ -44,7 +45,9 @@ export const DashboardPage: React.FC = () => {
         setError(err.message || 'Connection to the backend API failed. Ensure the server is online.');
       }
     } finally {
-      setIsLoading(false);
+      if (!isBackground) {
+        setIsLoading(false);
+      }
     }
   };
 

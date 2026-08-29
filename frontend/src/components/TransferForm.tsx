@@ -27,6 +27,14 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
   const sourceAccount = accounts.find(a => a.id === Number(sourceId)) || null;
   const destinationAccount = accounts.find(a => a.id === Number(destinationId)) || null;
 
+  const maskAccountNumber = (num: string) => {
+    const cleanNum = num.replace('ACCT-', '').replace(/[^a-zA-Z0-9]/g, '');
+    if (cleanNum.length > 4) {
+      return `XXXX XXXX ${cleanNum.substring(cleanNum.length - 4)}`;
+    }
+    return `XXXX XXXX ${cleanNum}`;
+  };
+
   const handleInitiate = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
@@ -76,8 +84,8 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
       <div className="bg-slate-900/30 border border-slate-900 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
         <TransferSuccess 
           transaction={successTransaction}
-          sourceNumber={sourceAccount.accountNumber}
-          destinationNumber={destinationAccount.accountNumber}
+          sourceNumber={maskAccountNumber(sourceAccount.accountNumber)}
+          destinationNumber={maskAccountNumber(destinationAccount.accountNumber)}
           onClose={handleReset}
         />
       </div>
@@ -104,7 +112,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
             <span className="text-slate-500 text-xs">Source Account</span>
             <div className="text-right">
               <p className="font-semibold text-slate-200">{sourceAccount.accountType}</p>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">{sourceAccount.accountNumber}</p>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{maskAccountNumber(sourceAccount.accountNumber)}</p>
             </div>
           </div>
 
@@ -112,7 +120,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
             <span className="text-slate-500 text-xs">Destination Account</span>
             <div className="text-right">
               <p className="font-semibold text-slate-200">{destinationAccount.accountType}</p>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">{destinationAccount.accountNumber}</p>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{maskAccountNumber(destinationAccount.accountNumber)}</p>
             </div>
           </div>
 
@@ -201,7 +209,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
             <option value="">Select source account</option>
             {accounts.map(a => (
               <option key={a.id} value={a.id}>
-                {a.accountType} - {a.accountNumber} ({formatCurrency(a.balance)}) {a.status !== 'ACTIVE' ? `[${a.status}]` : ''}
+                {a.accountType} - {maskAccountNumber(a.accountNumber)} ({formatCurrency(a.balance)}) {a.status !== 'ACTIVE' ? `[${a.status}]` : ''}
               </option>
             ))}
           </select>
@@ -235,7 +243,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ accounts, onTransfer
             <option value="">Select destination account</option>
             {destinationOptions.map(a => (
               <option key={a.id} value={a.id}>
-                {a.accountType} - {a.accountNumber} ({formatCurrency(a.balance)}) {a.status !== 'ACTIVE' ? `[${a.status}]` : ''}
+                {a.accountType} - {maskAccountNumber(a.accountNumber)} ({formatCurrency(a.balance)}) {a.status !== 'ACTIVE' ? `[${a.status}]` : ''}
               </option>
             ))}
           </select>

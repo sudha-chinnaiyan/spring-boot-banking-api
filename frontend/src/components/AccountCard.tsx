@@ -40,10 +40,11 @@ export const AccountCard: React.FC<AccountCardProps> = ({ account }) => {
   const status = getStatusStyles();
 
   const formatAccountNumber = (num: string) => {
-    if (num.startsWith('ACCT-')) {
-      return num;
+    const cleanNum = num.replace('ACCT-', '').replace(/[^a-zA-Z0-9]/g, '');
+    if (cleanNum.length > 4) {
+      return `XXXX XXXX ${cleanNum.substring(cleanNum.length - 4)}`;
     }
-    return `ACCT-${num.substring(0, 4)}-${num.substring(num.length - 4)}`;
+    return `XXXX XXXX ${cleanNum}`;
   };
 
   return (

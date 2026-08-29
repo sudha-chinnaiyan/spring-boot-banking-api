@@ -3,6 +3,7 @@ import type { Account } from '../types/account';
 import type { Transaction, PageResponse } from '../types/transaction';
 import { transactionService } from '../services/transactionService';
 import { formatCurrency } from '../utils/currency';
+import { formatDateTime } from '../utils/date';
 import { ArrowRightLeft, ArrowLeftRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TransactionHistoryProps {
@@ -117,15 +118,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ accounts
     }
   };
 
-  // Helper formatting for table timestamps
-  const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
   const selectedAccount = accounts.find(a => a.id === Number(selectedAccountId)) || null;
 
